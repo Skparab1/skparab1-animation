@@ -9,6 +9,8 @@ function preload() {
   table = loadTable("accounts.csv","csv","header");
 }
 
+// Add seconds() based downtime counter)
+
 function setup() {
   createCanvas(2048,846);
   background(0);
@@ -122,6 +124,17 @@ var b1color = [0,0,0];
 var b2colors = [0,0,0];
 var b3colors = [0,0,0];
 var b4colors = [0,0,0];
+var screenshottaker = 0;
+var screenshotlimit = 0;
+var olddimmer = 0;
+var startingtime = 0;
+var minutespassed = 0;
+var currentdowntime = 0;
+var oldsecond = 0;
+var startingminute = 0;
+var olddowntime = 0;
+var offtime = 0;
+var fps;
 
 if (signinstatus == 'signed out'){
   signintype = 'signed out';
@@ -297,6 +310,33 @@ function displaykeyboard(){
 }
 
 function draw() {
+  if (framerenderct == 1){
+    startingtime = second();
+    startingminute = minute();
+    oldsecond = second();
+    offtime = 0;
+  }
+  //print('off'+offtime);
+  //print('old',oldsecond,'new',second() );
+  
+  if (offtime <= 0){
+    offtime = 0;
+  }
+  
+  currentdowntime = (round(minute()-startingminute)*60) + round(second()-startingtime);
+  currentdowntime = round(currentdowntime - offtime);
+  
+  //currentdowntime = round(framerenderct*(deltaTime/1000));
+  
+  if (Math.abs(currentdowntime - round(framerenderct*(deltaTime/1000))) > 12){
+    offtime += round(Math.abs(currentdowntime - round(framerenderct*(deltaTime/1000))))/700;
+  }
+  
+  //currentdowntime = round(framerenderct*(deltaTime/1000));
+  
+  //print('Off: '+(second()-oldsecond));
+  
+  screenshottaker += 1;
   inactivetime += 1;
   framerenderct += 1;
   if (sync == 'on'){
@@ -553,19 +593,19 @@ function draw() {
     fill(b1color[0],b1color[1],b1color[2]);
     rect(200,200,700,250);
     if (mouseX >= 1100 && mouseX <= 1800 && mouseY >= 200 && mouseY <= 450 && changingcolor >= 254){
-      fill(200,0,0);
+      fill(blue+100,red-33+100,green+100);
     } else {
       fill(blue,red-33,green);
     }
     rect(1100,200,700,250);
     if (mouseX >= 200 && mouseX <= 900 && mouseY >= 500 && mouseY <= 750 && changingcolor >= 254){
-      fill(200,0,0);
+      fill(green+100,red-66+100,blue+100);
     } else {
       fill(green,red-66,blue);
     }
     rect(200,500,700,250);
     if (mouseX >= 1100 && mouseX <= 1800 && mouseY >= 500 && mouseY <= 750 && changingcolor >= 254){
-      fill(200,0,0);
+      fill(red-100+100,green+100,blue+100);
     } else {
       fill(red-100,green,blue);
     }
@@ -1509,6 +1549,8 @@ function draw() {
    let greenarrow;
    let bluearrow;
    
+   fps = round(framerenderct/currentdowntime);
+   
    if (backgroundcolor[0] == 0){redarrow = '-';} else if (backgroundcolor[0] > oldred){redarrow = '^';} else {redarrow = 'V';}
    if (backgroundcolor[1] == 0){greenarrow = '-';} else if (backgroundcolor[1] > oldgreen){greenarrow = '^';} else {greenarrow = 'V';}
    if (backgroundcolor[2] == 0){bluearrow = '-';} else if (backgroundcolor[2] > oldblue){bluearrow = '^';} else {bluearrow = 'V';}
@@ -1519,8 +1561,8 @@ function draw() {
     text('Text colors RGB                 '+textcolor[1]+' '+textcolor[1]+' '+textcolor[2],650,550);
     text('System workload                Normal',650,600);
     text('Server com channels         '+channels,650,650);
-    text('Current downtime               '+round(framerenderct/60),650,700);
-    text('Fps rate                              '+(channels+57),650,750);
+    text('Current downtime               '+currentdowntime,650,700);
+    text('Real time Fps rate             '+fps,650,750);
     text('Frame render count           '+framerenderct,650,800);
     //text(timenow,800,800);
     
@@ -1684,7 +1726,12 @@ function draw() {
     
     fill(200,0,0);
     rect(1600,720,10,50);
-    text(dimmer,1857,800);
+    if (screenshottaker > screenshotlimit){
+      text(dimmer,1857,800);
+    } else {
+      text(olddimmer,1857,800);
+    }
+    
     rect(1300,700,75,75);
     fill(100);
     rect(1300,775,75,75);
@@ -1697,9 +1744,9 @@ function draw() {
     }
     
     if (Math.abs(sliderx-dimmer) <= 4){
-    }else if (sliderx > dimmer){
+    }else if (sliderx > dimmer && screenshottaker > screenshotlimit){
       sliderx -= 4;
-    } else if (sliderx < dimmer){
+    } else if (sliderx < dimmer && screenshottaker > screenshotlimit){
       sliderx += 4;
     }
     
@@ -1737,9 +1784,71 @@ function draw() {
       image(oskeyboard,1360,55,484,200);
       print('in 2');
     }
+    
+    fill(200,200,0);
+    rect(1875,55,200,66);
+    fill(200,100,0);
+    rect(1875,55+66,200,200-66);
+    fill(200,0,0);
+    rect(1875,55+133,200,200-133);
+    
+    fill(0);
+    stroke(0);
+    
+    textSize(28);
+    text('Take screenshot',1825,40);
+    text('Now',1900,100);
+    text('In 5 sec',1900,160);
+    text('In 10 sec',1900,220);
+    
     textSize(100);
-
   }
+  
+  if (screenshotlimit-screenshottaker == 10){
+    olddimmer = dimmer;
+    dimmer = 100;
+  }
+  
+  if (screenshotlimit-screenshottaker == 1){
+    dimmer = olddimmer;
+  }
+  
+  if (screenshottaker == screenshotlimit){
+    saveCanvas();
+    screenshottaker = 1;
+    screenshotlimit = 0;
+  }
+  
+  if (screenshotlimit != 0){
+    fill(127);
+    textSize(500);
+    text(int((screenshotlimit-screenshottaker)/48)+1,800,700);
+    textSize(20);
+    
+    if (mouseX > 20 && mouseX < 2028 && mouseY > 10 && mouseY < 796){
+      stroke(255,255,0);
+      fill(255,255,0);
+    } else {
+      stroke(0,0,255);
+      fill(0,0,255);
+    }
+      
+    rect(0,0,2048,10);
+    rect(0,0,20,846);
+    rect(2028,0,20,846);
+    rect(0,796,2048,50);
+    
+    if (mouseX > 20 && mouseX < 2028 && mouseY > 10 && mouseY < 796){
+      fill(0);
+      text('                                                                                                                                            Cancel Screenshot                                                                                    ',25,820);
+    } else {
+      fill(255);
+      text('Cancel Screenshot           Cancel Screenshot           Cancel Screenshot           Cancel Screenshot           Cancel Screenshot           Cancel Screenshot           Cancel Screenshot           Cancel Screenshot           Cancel Screenshot',25,820);
+    }
+  }
+  
+  textSize(100);
+  
   if (changingcolor < 255 && freezecolors == 'off'){
     changingcolor += 3;
   } else if (freezecolors == 'off'){
@@ -1754,6 +1863,13 @@ function draw() {
   if (expiretime > 60){
     expiretime = expiretime - 60;
   }
+  
+  if (currentdowntime == 59){
+    blank = '';
+  }
+  
+  oldsecond = second();
+  olddowntime = currentdowntime ;
   
   print(expiretime);
   
@@ -1905,6 +2021,14 @@ function mouseDragged(){
 }
 
 function mousePressed(){
+  
+  if (mouseX > 20 && mouseX < 2028 && mouseY > 10 && mouseY < 796){
+    let blank = '';
+  } else {
+    screenshottaker = 1;
+    screenshotlimit = 0;
+  }
+  
   inactivetime = 0;
   starttime = minute();
   if (display == 'timeout'){
@@ -2186,6 +2310,16 @@ function mousePressed(){
       loadanim = 'on';
       autologout = 'on';
       keynav = 'on';
+      freezecolors = 'off';
+    } else if (mouseX >= 1875 && mouseX < 1875+200 && mouseY >= 55 && mouseY <= (55+66)){
+      screenshottaker = 0;
+      screenshotlimit = 15;
+    } else if (mouseX >= 1875 && mouseX < 1875+200 && mouseY >= 55+66 && mouseY <= (55+133)){
+      screenshottaker = 0;
+      screenshotlimit = 48*5;
+    } else if (mouseX >= 1875 && mouseX < 1875+200 && mouseY >= 55+133 && mouseY <= (55+200)){
+      screenshottaker = 0;
+      screenshotlimit = 48*10;
     }
 
   } else if (display == 'forgot password'){
